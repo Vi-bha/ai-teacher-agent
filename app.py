@@ -22,12 +22,16 @@ with st.sidebar:
     st.header("Settings")
 
     default_key = st.secrets.get("GROQ_API_KEY", "") if hasattr(st, "secrets") else ""
-    api_key = st.text_input(
-        "Groq API Key",
-        value=default_key,
-        type="password",
-        help="Get a free key at https://console.groq.com/keys",
-    )
+    if default_key:
+        api_key = default_key
+        st.success("✅ AI engine connected")
+    else:
+        api_key = st.text_input(
+            "Groq API Key",
+            value="",
+            type="password",
+            help="Get a free key at https://console.groq.com/keys",
+        )
     model_name = st.text_input("Model name", value=DEFAULT_MODEL)
 
     st.divider()
