@@ -1,6 +1,6 @@
 """
 agent.py
-Core agent logic: sends messages to a local Ollama model and parses
+Core agent logic: sends messages to Groq's free hosted LLM API and parses
 the structured MODE/TOPIC/CONTENT response format defined in prompts.py
 """
 
@@ -8,8 +8,8 @@ import re
 import requests
 from prompts import SYSTEM_PROMPT
 
-OLLAMA_URL = "http://localhost:11434/api/chat"
-DEFAULT_MODEL = "llama3.1"  # change to "qwen2.5" if you pulled that instead
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+DEFAULT_MODEL = "llama-3.1-8b-instant"  # fast + free on Groq
 
 
 class ParsedResponse:
@@ -22,31 +22,37 @@ class ParsedResponse:
         self.raw = raw
 
 
-def call_ollama(messages: list, model: str = DEFAULT_MODEL) -> str:
+def call_groq(messages: list, api_key: str, model: str = DEFAULT_MODEL) -> str:
     """
-    Sends the conversation to the local Ollama server and returns the
-    raw text reply.
+    Sends the conversation to Groq's hosted API and returns the raw text reply.
 
     messages: list of {"role": "user"/"assistant"/"system", "content": str}
+    api_key: Groq API key (free, from console.groq.com)
     """
+    if not api_key:
+        raise RuntimeError(
+            "No Groq API key found. Add it in Streamlit secrets or paste it "
+            "in the sidebar. Get a free key at https://console.groq.com/keys"
+        )
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
     payload = {
         "model": model,
         "messages": messages,
-        "stream": False,
+        "temperature": 0.4,
     }
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=120)
+        response = requests.post(GROQ_URL, headers=headers, json=payload, timeout=60)
         response.raise_for_status()
         data = response.json()
-        return data["message"]["content"]
-    except requests.exceptions.ConnectionError:
-        raise RuntimeError(
-            "Could not connect to Ollama. Make sure Ollama is installed and "
-            "running (it should start automatically after installation, or "
-            "run 'ollama serve' in a terminal)."
-        )
+        return data["choices"][0]["message"]["content"]
+    except requests.exceptions.HTTPError as e:
+        raise RuntimeError(f"Groq API error: {e} - {response.text}")
     except Exception as e:
-        raise RuntimeError(f"Error talking to Ollama: {e}")
+        raise RuntimeError(f"Error talking to Groq: {e}")
 
 
 def parse_response(raw_text: str) -> ParsedResponse:
@@ -65,10 +71,10 @@ def parse_response(raw_text: str) -> ParsedResponse:
     return ParsedResponse(mode=mode, topic=topic, content=content, raw=raw_text)
 
 
-def ask_agent(user_message: str, chat_history: list, model: str = DEFAULT_MODEL) -> ParsedResponse:
+def ask_agent(user_message: str, chat_history: list, api_key: str, model: str = DEFAULT_MODEL) -> ParsedResponse:
     """
     Main entry point: builds the full message list (system prompt + history +
-    new message), calls the local LLM, and returns a parsed response.
+    new message), calls the Groq API, and returns a parsed response.
 
     chat_history: list of {"role": "user"/"assistant", "content": str}
                   (plain conversation history, without the system prompt)
@@ -77,5 +83,5 @@ def ask_agent(user_message: str, chat_history: list, model: str = DEFAULT_MODEL)
     messages.extend(chat_history)
     messages.append({"role": "user", "content": user_message})
 
-    raw_reply = call_ollama(messages, model=model)
+    raw_reply = call_groq(messages, api_key=api_key, model=model)
     return parse_response(raw_reply)

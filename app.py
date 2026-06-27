@@ -5,8 +5,7 @@ Streamlit front-end for the EngiTutor agent.
 Run with:
     streamlit run app.py
 
-Requires Ollama running locally with a model pulled, e.g.:
-    ollama pull llama3.1
+Requires a free Groq API key from https://console.groq.com/keys
 """
 
 import streamlit as st
@@ -21,12 +20,20 @@ st.caption("A free, local AI agent that explains engineering concepts, builds PP
 # Sidebar settings
 with st.sidebar:
     st.header("Settings")
-    model_name = st.text_input("Ollama model name", value=DEFAULT_MODEL)
+
+    # Try to get key from Streamlit secrets first (used when deployed online)
+    default_key = st.secrets.get("GROQ_API_KEY", "") if hasattr(st, "secrets") else ""
+    api_key = st.text_input(
+        "Groq API Key",
+        value=default_key,
+        type="password",
+        help="Get a free key at https://console.groq.com/keys",
+    )
+    model_name = st.text_input("Model name", value=DEFAULT_MODEL)
     st.markdown(
         "**Setup checklist:**\n"
-        "1. Install Ollama (ollama.com)\n"
-        "2. Run `ollama pull llama3.1`\n"
-        "3. Keep Ollama running in the background\n"
+        "1. Get a free Groq API key: console.groq.com/keys\n"
+        "2. Paste it above (or set it in Streamlit Cloud secrets as `GROQ_API_KEY`)\n"
     )
     if st.button("Clear conversation"):
         st.session_state.chat_history = []
@@ -64,7 +71,7 @@ if user_input:
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                parsed = ask_agent(user_input, st.session_state.chat_history, model=model_name)
+                parsed = ask_agent(user_input, st.session_state.chat_history, api_key=api_key, model=model_name)
             except RuntimeError as e:
                 st.error(str(e))
                 st.stop()

@@ -1,17 +1,18 @@
 # EngiTutor — AI Engineering Teacher Agent
 
-A free, local AI agent built with Streamlit + Ollama (open-source LLM) that:
+A free AI agent built with Streamlit + Groq (free hosted LLM API) that:
 - Explains engineering concepts
 - Generates real downloadable PPT files
 - Creates quizzes with answers
 - Answers student doubts
 
-100% free — no API keys, no internet required once set up (runs fully on your machine).
+Runs both locally and **online for free** via Streamlit Community Cloud, since
+it uses Groq's hosted API instead of a local model.
 
 ## How it works
 
 ```
-You (browser) → Streamlit app (app.py) → agent.py → Ollama (local LLM)
+You (browser) → Streamlit app (app.py) → agent.py → Groq API (hosted LLM)
                                               ↓
                                        ppt_generator.py → real .pptx file
 ```
@@ -30,31 +31,36 @@ CONTENT:
 `ppt_generator.py` converts the slide text into an actual `.pptx` file you can
 download.
 
-## Setup
+## Setup — Run Locally
 
-### 1. Install Ollama
-Download from https://ollama.com/download and install it (Windows/Mac/Linux all supported).
+### 1. Get a free Groq API key
+Go to https://console.groq.com/keys, sign up (free), and create a key.
 
-### 2. Pull a model
-Open a terminal and run:
-```bash
-ollama pull llama3.1
-```
-(Smaller/faster alternative: `ollama pull qwen2.5:7b` — if you do this, change
-`DEFAULT_MODEL` in `agent.py` or just type the model name in the app sidebar.)
-
-Ollama runs a local server automatically at `http://localhost:11434`.
-
-### 3. Install Python dependencies
+### 2. Install Python dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Run the app
+### 3. Run the app
 ```bash
 streamlit run app.py
 ```
-This opens the app in your browser at `http://localhost:8501`.
+Paste your Groq API key into the sidebar when the app opens in your browser.
+
+## Setup — Deploy Online for Free (shareable link)
+
+1. Push this project to a GitHub repo (already done if you're reading this on GitHub).
+2. Go to https://share.streamlit.io and sign in with GitHub.
+3. Click **New app**, select this repo, branch `main`, file `app.py`.
+4. Before deploying, click **Advanced settings → Secrets** and add:
+   ```toml
+   GROQ_API_KEY = "your_actual_groq_key_here"
+   ```
+5. Click **Deploy**. You'll get a public link like:
+   `https://your-app-name.streamlit.app`
+
+The app automatically reads `GROQ_API_KEY` from Streamlit secrets when deployed,
+so users don't need to paste a key themselves.
 
 ## Example things to try
 - "Explain the working of a transformer"
@@ -66,10 +72,11 @@ This opens the app in your browser at `http://localhost:8501`.
 ```
 ai-teacher-agent/
 ├── app.py            # Streamlit UI (run this)
-├── agent.py          # Talks to Ollama, parses structured responses
+├── agent.py          # Talks to Groq API, parses structured responses
 ├── ppt_generator.py  # Converts slide text into real .pptx files
 ├── prompts.py         # System prompt that defines the agent's behavior
 ├── requirements.txt
+├── .gitignore
 └── README.md
 ```
 
@@ -79,11 +86,12 @@ ai-teacher-agent/
   user's natural language request, then takes the appropriate *action*
   (generating a file, formatting a quiz, etc.) without the user specifying
   the mode explicitly.
-- Using a **local LLM via Ollama** keeps the project free and runnable offline,
-  which is ideal for a student project (no API costs, no rate limits).
+- Using **Groq's free hosted API** keeps the project free, fast, and
+  deployable online (unlike a local-only model, this works as a shareable
+  web app).
 - The strict `MODE/TOPIC/CONTENT` output format is a simple but effective way
-  to get reliable structured behavior out of smaller open-source models that
-  don't support native "function calling" like larger commercial APIs do.
+  to get reliable structured behavior out of LLMs without needing native
+  "function calling" support.
 
 ## Possible extensions (good for "future scope" section)
 - Track student quiz scores over time and adapt difficulty
