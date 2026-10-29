@@ -9,7 +9,7 @@ import requests
 from prompts import SYSTEM_PROMPT
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-DEFAULT_MODEL = "llama-3.1-8b-instant"  # fast + free on Groq
+DEFAULT_MODEL = "openai/gpt-oss-120b""  # fast + free on Groq
 
 
 class ParsedResponse:
@@ -40,7 +40,7 @@ def call_groq(messages: list, api_key: str, model: str = DEFAULT_MODEL) -> str:
         "Content-Type": "application/json",
     }
     payload = {
-        "model": model,
+        "model": "openai/gpt-oss-120b",
         "messages": messages,
         "temperature": 0.4,
     }
